@@ -1,0 +1,18 @@
+<launch>
+    <node name="dynamic_reconfigure" pkg="reconfigure_gui" type="dynamic_reconfigure" output="screen"/>
+
+    <!--Param for depth image procesing-->
+    <param name="dilation16"  type="int" value="0" />
+    <param name="erosion16"   type="int" value="2" />
+    <param name="opening16"   type="int" value="0" />
+    <param name="closing16"   type="int" value="0" />
+    <param name="threshold16" type="int" value="1000" />
+    <!--Param for edge image procesing-->
+    <param name="dilation8"  type="int" value="0" />
+    <param name="erosion8"   type="int" value="0" />
+    <param name="opening8"   type="int" value="0" />
+    <param name="closing8"   type="int" value="0" />
+
+    <node name="image_converter" pkg="object_detection" type="object_detection" output="screen"/>
+
+</launch>

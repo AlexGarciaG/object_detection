@@ -8,11 +8,14 @@ project(object_detection)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  cv_bridge
+  image_transport
   roscpp
-  rospy
   sensor_msgs
   std_msgs
+  dynamic_reconfigure
 )
+find_package(OpenCV 4 REQUIRED)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -89,10 +92,15 @@ find_package(catkin REQUIRED COMPONENTS
 ##     and list every .cfg file to be processed
 
 ## Generate dynamic reconfigure parameters in the 'cfg' folder
-# generate_dynamic_reconfigure_options(
+generate_dynamic_reconfigure_options(
 #   cfg/DynReconf1.cfg
 #   cfg/DynReconf2.cfg
-# )
+cfg/object_detection.cfg
+
+)
+
+
+# make sure configure headers are built before any node using them
 
 ###################################
 ## catkin specific configuration ##
@@ -108,6 +116,9 @@ catkin_package(
 #  LIBRARIES object_detection
 #  CATKIN_DEPENDS roscpp rospy sensor_msgs std_msgs
 #  DEPENDS system_lib
+
+
+
 )
 
 ###########
@@ -119,7 +130,9 @@ catkin_package(
 include_directories(
 # include
   ${catkin_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}  
 )
+
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
@@ -205,3 +218,18 @@ include_directories(
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+
+
+
+add_executable(talker src/talker.cpp)
+target_link_libraries(talker ${catkin_LIBRARIES})
+add_dependencies(talker object_detection)
+
+add_executable(listener src/listener.cpp)
+target_link_libraries(listener ${catkin_LIBRARIES})
+add_dependencies(listener object_detection)
+
+add_executable(object_detection src/object_detection.cpp)
+target_link_libraries(object_detection ${catkin_LIBRARIES})
+add_dependencies(object_detection object_detection)
+add_dependencies(object_detection ${PROJECT_NAME}_gencfg)
