@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   dynamic_reconfigure
 )
 find_package(OpenCV 4 REQUIRED)
+find_package(CUDA REQUIRED)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -139,6 +140,14 @@ include_directories(
 #   src/${PROJECT_NAME}/object_detection.cpp
 # )
 
+#set(CUDA_NVCC_FLAGS "-arch=compute_30" CACHE STRING "nvcc flags" FORCE)
+#set(CUDA_VERBOSE_BUILD ON CACHE BOOL "nvcc verbose" FORCE) 
+#set(LIB_TYPE STATIC)
+#cuda_add_library(CUDAimageProcesingLib ${LIB_TYPE} src/imageProcesing.cu)
+
+
+
+
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
@@ -243,3 +252,24 @@ target_link_libraries(object_detection_ttb tbb)
 
 add_dependencies(object_detection_ttb object_detection_ttb)
 add_dependencies(object_detection_ttb ${PROJECT_NAME}_gencfg)
+
+################################################
+## Declare Cuda##
+################################################
+set(CMAKE_CUDA_COMPILER  nvcc)
+
+#Here you can set any ncvv compiler flags, if you so wish
+#SET(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -DMY_DEF=1")
+
+#Here you can set any gcc/cmake compiler flags, if you so wish
+#SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -O3")
+
+#cuda_add_executable(
+#  cuda_test_cu
+#  src/imageProcesing.cu
+#)
+#arget_link_libraries(
+#   cuda_test_cu
+#   ${catkin_LIBRARIES}
+#   ${CUDA_LIBRARIES}
+#)
