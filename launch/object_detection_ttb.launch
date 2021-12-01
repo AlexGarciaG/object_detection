@@ -2,6 +2,6 @@
     <!--Param for depth image procesing-->
 
     <node name="rqt_reconfigure" pkg="rqt_reconfigure" type="rqt_reconfigure" />
-    <node name="image_converter" pkg="object_detection" type="object_detection" output="screen"/>
+    <node name="image_converter" pkg="object_detection" type="object_detection_ttb" output="screen"/>
 
 </launch>

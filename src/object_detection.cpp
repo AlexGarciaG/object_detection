@@ -1,3 +1,4 @@
+
 #include <ros/ros.h>
 #include <image_transport/image_transport.h>
 #include <cv_bridge/cv_bridge.h>
@@ -28,9 +29,22 @@ class ImageConverter
 
   const int maskR=1;
   const int maskSize=1+(2*maskR);
+  //Ros for dynamic reconfigure
+  dynamic_reconfigure::Server<object_detection::object_detectionConfig> server;
+  dynamic_reconfigure::Server<object_detection::object_detectionConfig>::CallbackType f;
 
 
 public:
+    int vardilation16=0;
+    int varerosion16=2;
+    int varopening16=0;
+    int varclosing16=0;
+    int varThreshold16=1000;
+    //8 bits
+    int vardilation8=0;
+    int varerosion8=1;
+    int varopening8=0;
+    int varclosing8=0;
   ImageConverter(): it_(nh_)
   {
     // Subscrive to input video feed and publish output video feed
@@ -38,7 +52,8 @@ public:
     //Publisher laser scan
     //image_pub_ = it_.advertise("/camera/depth/object_detection", 1);
 
-
+    f = boost::bind(&ImageConverter::callback,this, _1, _2);
+    server.setCallback(f);
     //Window to open image 
     cv::namedWindow(OPENCV_WINDOW);
 
@@ -69,11 +84,19 @@ public:
           dark = false;
           //Get mask
           for (int i=r-maskR; i<(r+maskR);i++){
-            for (int j=c-maskR; j<(c+maskR);j++){
-              //If found a drak pixel enable flag
-              if( image.at<unsigned short>(i, j) == 0){
-                dark=true;
+            if((i>0) && (i <rows)){
+              for (int j=c-maskR; j<(c+maskR);j++){
+                if((i>0) && (i <rows)){
+                  //If found a drak pixel enable flag
+                  if( image.at<unsigned short>(i, j) == 0){
+                    dark=true;
+                  }
+                }else{
+                    dark=true;
+                }
               }
+            }else{
+              dark=true;
             }
           }
           //If drak pixel eflag is nable then place dark pixel otherwise copy original image pixel
@@ -116,11 +139,19 @@ public:
             unsigned long  int sum= 0;
             //Get mask
             for (int i=r-maskR; i<(r+maskR);i++){
-              for (int j=c-maskR; j<(c+maskR);j++){
-
+              if((i>0) && (i <rows)){
+                for (int j=c-maskR; j<(c+maskR);j++){
+                  if((j>0) && (j <cols)){
+                    count++;
+                    sum= sum +image.at<unsigned short>(i, j);
+                  }else{
+                    count++;
+                  }
+                }
+              }else{
                 count++;
-                sum= sum +image.at<unsigned short>(i, j); 
               }
+
             }
             //place the average
             imageTemp.at<unsigned short>(r, c) = sum/count;
@@ -159,7 +190,7 @@ public:
     dilation16();
     erosion16();
   }
-  void edge16(int varThreshold16) {
+  void edge16() {
       /***********************************
      * Edge16:
      * Edge for  depth image
@@ -229,7 +260,7 @@ public:
 						comulative = 0;
 					}
 					//Save the Combinacion of 8 bit to edge picture
-					imageEdge.at<char>(r,c)	= ( char) (comulative); 
+					this->imageEdge.at<char>(r,c)	= ( char) (comulative); 
 
 				}
 			}
@@ -244,35 +275,44 @@ public:
      * Add black pixels when pixels are near
      * *********************************/
     //Temp image to save erosrion changes
-    cv::Mat imageTemp (imageEdge.rows,imageEdge.cols,CV_8UC1);
-    unsigned char rows = imageEdge.rows;
-    unsigned char cols = imageEdge.cols;
+    cv::Mat imageTemp (this->imageEdge.rows,this->imageEdge.cols,CV_8UC1);
+    int rows = this->imageEdge.rows;
+    int cols = this->imageEdge.cols;
     //Image erosion8
     bool dark;
-    for (unsigned char r=0; r<(rows);r++){
-      for (unsigned char c=0; c<(cols);c++){
+    for (int r=0; r<(rows);r++){
+      for (int c=0; c<(cols);c++){
           dark = false;
           //Get mask
           for (int i=r-maskR; i<(r+maskR);i++){
-            for (int j=c-maskR; j<(c+maskR);j++){
-              //If found a drak pixel enable flag
-              if( imageEdge.at<unsigned char>(i, j) == 0){
-                dark=true;
+            if((i>0) && (i <rows)){
+              for (int j=c-maskR; j<(c+maskR);j++){
+                if((j>0) && (j <cols)){
+                  //If found a drak pixel enable flag
+                  if( this->imageEdge.at<char>(i, j) == 0){
+                    dark=true;
+                  }
+                }else{
+                  dark=true;
+                }
+
               }
+            }else{
+              dark=true;
             }
           }
           //If drak pixel eflag is nable then place dark pixel otherwise whithe pixel
           if( dark){
-            imageTemp.at<unsigned char>(r, c) = 0;
+            imageTemp.at<char>(r, c) = ( char)0;
           }else{
-            imageTemp.at<unsigned char>(r, c) = 255 ;
+            imageTemp.at<char>(r, c) = ( char)255 ;
           }
       }
     }
     //copi erosion8 image to original image
-    for (unsigned char r=0; r<(rows);r++){
-      for (unsigned char c=0; c<(cols);c++){
-        imageEdge.at<unsigned char>(r, c) = imageTemp.at<unsigned char>(r, c);
+    for (int r=0; r<(rows);r++){
+      for (int c=0; c<(cols);c++){
+        this->imageEdge.at<char>(r, c) = imageTemp.at<char>(r, c);
         
       }
     }
@@ -288,43 +328,39 @@ public:
      * Eliminate black pixels when white ixels are near
      * *********************************/
     //Temp image to save dilation changes
-    cv::Mat imageTemp (imageEdge.rows,imageEdge.cols,CV_8UC1);
-    unsigned char rows = image.rows;
-    unsigned char cols = image.cols;
+    cv::Mat imageTemp (this->imageEdge.rows,this->imageEdge.cols,CV_8UC1);
+    int rows = image.rows;
+    int cols = image.cols;
     //Image dilation8
-    for (unsigned char r=0; r<(rows);r++){
-      for (unsigned char c=0; c<(cols);c++){
-          //If the pixel is dark check white pixels
-          if (imageEdge.at<unsigned char>(r, c)==0){
-            //Temporal variables to check white pixels
-            bool white = false;
-            //Get mask
-            for (int i=r-maskR; i<(r+maskR);i++){
+    bool white;
+    for (int r=0; r<(rows);r++){
+      for (int c=0; c<(cols);c++){
+          white = false;
+          //Get mask
+          for (int i=r-maskR; i<(r+maskR);i++){
+            if((i>0) && (i <rows)){
               for (int j=c-maskR; j<(c+maskR);j++){
-
-                if (imageEdge.at<unsigned char>(r, c)==255){
-                  white =true;
+                if((j>0) && (j <cols)){
+                  //If found a drak pixel enable flag
+                  if( this->imageEdge.at<char>(i, j) != 0){
+                    white=true;
+                  }
                 }
-
               }
             }
-            //place the wihte or dark pixel
-            if (white){
-              imageTemp.at<unsigned char>(r, c) = 255;
-            }else{
-              imageTemp.at<unsigned char>(r, c) = 0;
-            }
-            
-          }else{
-            imageTemp.at<unsigned char>(r, c) = 255;
           }
-
+          //If drak pixel eflag is nable then place dark pixel otherwise whithe pixel
+          if( white){
+            imageTemp.at<char>(r, c) = ( char)255;
+          }else{
+            imageTemp.at<char>(r, c) = ( char)0 ;
+          }
       }
     }
     //copi dilation8 image to original image
-    for (unsigned char r=0; r<(rows);r++){
-      for (unsigned char c=0; c<(cols);c++){
-        imageEdge.at<unsigned char>(r, c) = imageTemp.at<unsigned char>(r, c);
+    for (int r=0; r<(rows);r++){
+      for (int c=0; c<(cols);c++){
+        this->imageEdge.at<char>(r, c) = imageTemp.at<char>(r, c);
         
       }
     }
@@ -355,7 +391,7 @@ public:
 
 
 
-  void imageProcesingForDepthImage(int vardilation16, int varerosion16, int varopening16, int varclosing16, int varThreshold16){
+  void imageProcesingForDepthImage(){
       /***********************************
      * imageProcesingForDepthImage:
      * imageProcesingForDepthImage
@@ -379,12 +415,12 @@ public:
       closing16();
     }
     //Execute edge detection by a Threshold
-    edge16(varThreshold16);
+    edge16();
   }
 
 
 
-    void imageProcesingForEdgeImage(int vardilation8, int varerosion8, int varopening8, int varclosing8){
+    void imageProcesingForEdgeImage(){
       /***********************************
      * imageProcesingForEdgeImage:
      * imageProcesingForEdgeImage
@@ -395,10 +431,7 @@ public:
     for(int i = 0;i<vardilation8;i++){
       dilation8();
     }
-    //Execute erosion8 n times
-    for(int i = 0;i<varerosion8;i++){
-      erosion8();
-    }   
+
     //Execute opening8 n times
     for(int i = 0;i<varopening8;i++){
       opening8();
@@ -407,6 +440,10 @@ public:
     for(int i = 0;i<varclosing8;i++){
       closing8();
     }
+        //Execute erosion8 n times
+    for(int i = 0;i<varerosion8;i++){
+      erosion8();
+    }   
   }
 
   void imageCb(const sensor_msgs::ImageConstPtr& msg)
@@ -430,16 +467,8 @@ public:
     }
     //Get the param fron the launcher
     //16 bits
-    int vardilation16;
-    int varerosion16;
-    int varopening16;
-    int varclosing16;
-    int varThreshold16;
-    //8 bits
-    int vardilation8;
-    int varerosion8;
-    int varopening8;
-    int varclosing8;
+
+    /*
     //16 bits
     ros::param::get("/dilation16",  vardilation16);
     ros::param::get("/erosion16",   varerosion16);
@@ -451,27 +480,42 @@ public:
     ros::param::get("/erosion8",   varerosion8);
     ros::param::get("/opening8",   varopening8);
     ros::param::get("/closing8",   varclosing8);
+    */
     //Make image procesing for depth image
     //16 bits
-    imageProcesingForDepthImage(vardilation16,varerosion16,varopening16,varclosing16,varThreshold16);
+    imageProcesingForDepthImage();
     //o bits
-    imageProcesingForEdgeImage( vardilation8,  varerosion8,  varopening8,  varclosing8);
+    imageProcesingForEdgeImage();
+    
     // Update GUI Window
     cv::imshow(OPENCV_WINDOW, this->imageEdge);
     cv::waitKey(3);
-    sensor_msgs::ImagePtr msgs = cv_bridge::CvImage(cv_ptr->header, "CV_8UC1", this->imageEdge).toImageMsg();
 
     // Publisg modified video stream
+    //    sensor_msgs::ImagePtr msgs = cv_bridge::CvImage(cv_ptr->header, "CV_8UC1", this->imageEdge).toImageMsg();
     //image_pub_.publish(msgs);
   }
-};
-void callback(object_detection::object_detectionConfig &config, uint32_t level) {
+  void callback(object_detection::object_detectionConfig &config, uint32_t level) {
+  /*
   ROS_INFO("Reconfigure Request: %d %f %s %s %d", 
             config.int_param, config.double_param, 
             config.str_param.c_str(), 
             config.bool_param?"True":"False", 
             config.size);
+            */
+    vardilation16   =config.dilation16;
+    varerosion16    =config.erosion16;
+    varopening16    =config.opening16;
+    varclosing16    =config.closing16;
+    varThreshold16  =config.threshold16;
+    //8 bits
+    vardilation8  =config.dilation8;
+    varerosion8   =config.erosion8;
+    varopening8   =config.opening8;
+    varclosing8   =config.closing8;
 }
+
+};
 
 int main(int argc, char** argv)
 {
@@ -482,11 +526,7 @@ int main(int argc, char** argv)
 
 
 
-  //Ros for dynamic reconfigure
-  dynamic_reconfigure::Server<object_detection::object_detectionConfig> server;
-  dynamic_reconfigure::Server<object_detection::object_detectionConfig>::CallbackType f;
-  f = boost::bind(&callback, _1, _2);
-  server.setCallback(f);
+
 
 
 
@@ -495,7 +535,3 @@ int main(int argc, char** argv)
   ros::spin();
   return 0;
 }
-
-
-
-

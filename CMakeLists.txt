@@ -229,7 +229,17 @@ add_executable(listener src/listener.cpp)
 target_link_libraries(listener ${catkin_LIBRARIES})
 add_dependencies(listener object_detection)
 
+
+
 add_executable(object_detection src/object_detection.cpp)
 target_link_libraries(object_detection ${catkin_LIBRARIES})
 add_dependencies(object_detection object_detection)
 add_dependencies(object_detection ${PROJECT_NAME}_gencfg)
+
+
+add_executable(object_detection_ttb src/object_detection_ttb.cpp)
+target_link_libraries(object_detection_ttb ${catkin_LIBRARIES})
+target_link_libraries(object_detection_ttb tbb)
+
+add_dependencies(object_detection_ttb object_detection_ttb)
+add_dependencies(object_detection_ttb ${PROJECT_NAME}_gencfg)
