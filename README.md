@@ -26,6 +26,7 @@ cd ~/catkin_ws
 catkin_make
 source devel/setup.bash
 ```
+[Tutotial de como crear tu work space](http://wiki.ros.org/ROS/Tutorials/InstallingandConfiguringROSEnvironment)
 ## Ejecucion
 Lanzar la camara y RVIZ:
 ```
